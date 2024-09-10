@@ -175,6 +175,34 @@ def delete_user(user_id):
         logging.error(f"ERROR AO DELETAR USUÁRIO {type(err)} - {err}")
         return {"error": "Ocorreum erro ao deletar usuário!"}, 500 
     
+@app.route("/update-user/<int:user_id>", methods=["PUT"])
+@login_required
+def update_user(user_id):
+    try:
+        
+        user_name = request.json.get("user_name")
+        password = request.json.get("password")
+        
+        
+        if user_name != None and password != None:
+            user_to_update = db.session.query(User).filter(User.id == user_id).first()
+        
+            if user_to_update is None:
+                return {'error': 'Usuário não encontrado!'}, 404
+
+            user_to_update.username = user_name
+            user_to_update.password = password
+
+            db.session.commit()
+        
+            return {"msg": 'Usuário atualizado com sucesso!'}, 200
+
+        return {"error": "User name e password devem ser enviados!"}, 400
+        
+    except Exception as err:
+        db.session.rollback()
+        logging.error(f"ERROR AO ATUALIZAR USUÁRIO {type(err)} - {err}")
+        return {"error": "Ocorreum erro ao atualizar usuário!"}, 500 
 
 if __name__ == "__main__":
     app.run(debug=True)
