@@ -1,7 +1,7 @@
 from flask import Flask, request
 from models.user import User
 from factory import db
-from flask_login import LoginManager, login_user, current_user
+from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 import logging
 
 app = Flask(__name__)
@@ -51,6 +51,21 @@ def login():
     except Exception as err:
         logging.error(f"ERROR AO REALIZAR LOGIN: {type(err)} - {err}")
         return {"error": "Ocorreum erro ao relizar login!"}, 500
+
+@app.route("/logout", methods=["GET"])
+@login_required
+def logout():
+    try:
+        if current_user.is_authenticated:
+            logout_user()
+            return {'msg': "Logout realizado com sucesso!"}, 200
+        
+        return {'error': "Não foi possível realizar logout!"}, 400
+        
+        
+    except Exception as err:
+        logging.error(f"ERROR AO REALIZAR LOGOUT: {type(err)} - {err}")
+        return {"error": "Ocorreum erro ao relizar logout!"}, 500
 
 
 if __name__ == "__main__":
