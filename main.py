@@ -141,7 +141,7 @@ def get_all_users():
 def get_user(user_id):
     try:
 
-        get_user = db.session.query(User).filter(User.id.ilike(f"%{user_id}%")).first()
+        get_user = db.session.query(User).filter(User.id == user_id).first()
 
         if get_user is None:
             return {'msg': 'Nenhum usuário encontrado!'}, 404
@@ -155,6 +155,26 @@ def get_user(user_id):
         logging.error(f"ERROR AO LISTAR USUÁRIOS: {type(err)} - {err}")
         return {"error": "Ocorreum erro ao listar usuários!"}, 500
 
+@app.route("/delete-user/<int:user_id>", methods=["DELETE"])
+@login_required
+def delete_user(user_id):
+    try:
+        
+        user_to_delete = db.session.query(User).filter(User.id.ilike(f"%{user_id}%")).first()
+    
+        if user_to_delete is None:
+            return {'error': 'Usuário não encontrado!'}, 404
+
+        db.session.delete(user_to_delete)
+        db.session.commit()
+    
+        return {"msg": 'Usuário deletado com sucesso!'}, 200
+    
+    except Exception as err:
+        db.session.rollback()
+        logging.error(f"ERROR AO DELETAR USUÁRIO {type(err)} - {err}")
+        return {"error": "Ocorreum erro ao deletar usuário!"}, 500 
+    
 
 if __name__ == "__main__":
     app.run(debug=True)
