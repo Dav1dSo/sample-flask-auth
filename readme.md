@@ -25,10 +25,14 @@ source venv/bin/activate   # Linux/Mac
 venv\Scripts\activate      # Windows
 ```
 ### 3. Instalar depêndencias do projeto
-```pip install -r requirements.txt```
+```
+pip install -r requirements.txt
+```
 
 ### Rodar aplicação.
-```Flask run``` 
+```
+Flask run
+``` 
 
 🛠 Ferramentas utilizadas
 
