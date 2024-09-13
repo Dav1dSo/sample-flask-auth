@@ -1,5 +1,6 @@
 from flask import Flask, request
 from models.user import User
+import bcrypt
 from factory import db
 from flask_login import (
     LoginManager,
@@ -13,7 +14,7 @@ import logging
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "your-secret-key"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://myuser:mypassword@localhost:5432/mydatabase'
 
 login_manager = LoginManager()
 
@@ -46,7 +47,7 @@ def login():
             if user is None:
                 return {"error": "Usuário não encontrado!"}, 404
 
-            if user and password == user.password:
+            if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
                 login_user(user)
                 print(current_user.is_authenticated)
                 return {"msg": "Login realizado com sucesso!"}, 200
@@ -80,6 +81,8 @@ def create_user():
         user_name = request.json.get("user_name")
         password = request.json.get("password")
 
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        
         username_exists = (
             db.session.query(User).filter(User.username == user_name).first()
         )
@@ -88,7 +91,7 @@ def create_user():
             return {"error": "User name já em uso!"}, 409
 
         if user_name != None and password != None:
-            new_user = User(username=user_name, password=password)
+            new_user = User(username=user_name, password=hashed_password.decode('utf-8'), role='user')
             db.session.add(new_user)
             db.session.commit()
 
@@ -99,7 +102,7 @@ def create_user():
     except Exception as err:
         db.session.rollback()
         logging.error(f"ERROR AO CRIAR USUÁRIO: {type(err)} - {err}")
-        return {"error": "Ocorreum erro ao realizar logout!"}, 500
+        return {"error": "Ocorreum erro ao criar usuário!"}, 500
 
 
 @app.route("/get-all-user", methods=["GET"])
@@ -160,6 +163,12 @@ def get_user(user_id):
 def delete_user(user_id):
     try:
         
+        if current_user.role != 'admin':
+            return {'error': 'Operação não permitida'}, 403
+                
+        if current_user.id != user_id and current_user.role == 'user':
+            return {'error': 'Você não tem permissão para realizar está ação!'}, 403
+        
         user_to_delete = db.session.query(User).filter(User.id.ilike(f"%{user_id}%")).first()
     
         if user_to_delete is None:
@@ -183,6 +192,11 @@ def update_user(user_id):
         user_name = request.json.get("user_name")
         password = request.json.get("password")
         
+        if current_user.role != 'admin':
+            return {'error': 'Operação não permitida'}, 403
+                
+        if current_user.id != user_id and current_user.role == 'user':
+            return {'error': 'Você não tem permissão para realizar está ação!'}, 403
         
         if user_name != None and password != None:
             user_to_update = db.session.query(User).filter(User.id == user_id).first()
@@ -205,4 +219,4 @@ def update_user(user_id):
         return {"error": "Ocorreum erro ao atualizar usuário!"}, 500 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=True)
